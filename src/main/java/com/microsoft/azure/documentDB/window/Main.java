@@ -44,6 +44,7 @@ import javax.swing.JTree;
 import javax.swing.ListSelectionModel;
 import javax.swing.RowSorter;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -653,17 +654,38 @@ public class Main extends JPanel {
 						ConnectDialog dialog = new ConnectDialog(frame, "Connect to Azure Table Storage", new ConnectAction() {
 
 							@Override
-							public boolean connect(Closeable closeable, String protocol, String accountName, String accountKey) throws Exception {
+							public boolean connect(final Closeable closeable, final String uri) throws Exception {
 								try {
-									container = new TableContainer(protocol, accountName, accountKey);
 									
-									container.createClient();
-									
-									container.savePreferences();
-									
-									populateTableTree();
-									
-									closeable.close();
+									SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+
+										@Override
+										protected Void doInBackground() throws Exception {
+											
+											System.out.println("IM here a");
+
+											container = new TableContainer(uri);
+											
+											container.createClient();
+
+											System.out.println("IM here b");
+										
+											container.savePreferences();
+											
+											System.out.println("IM here c");
+											
+											populateTableTree();
+											
+											closeable.close();
+											
+											System.out.println("IM here d");
+
+											return null;
+										}
+										
+									};
+
+									worker.execute();
 									
 									return true;
 									

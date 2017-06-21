@@ -39,7 +39,7 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 
 	public interface ConnectAction {
 
-		boolean connect(Closeable closeable, String protocol, String accountName, String accountKey) throws Exception;
+		boolean connect(Closeable closeable, String uri) throws Exception;
 
 	}
 
@@ -53,20 +53,14 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-		JLabel inputLable = new JLabel("Enter Azure Connection:");
+		JLabel inputLable = new JLabel("Enter Azure URI Connection:");
 
 		inputLable.setForeground(Color.BLUE.darker().darker());
 
 		Preferences preferences = Preferences.userRoot();
 
-		JComboBox<String> uriProtocol = new JComboBox<String>(StringUtils.split( preferences.get("azure-table-protocols", ""), ","));
-		uriProtocol.setEditable(true);
-
-		JComboBox<String> accountName = new JComboBox<String>(StringUtils.split(preferences.get("azure-table-account-names", ""), ","));
-		accountName.setEditable(true);
-
-		JComboBox<String> accountKey = new JComboBox<String>(StringUtils.split(preferences.get("azure-table-account-keys", ""), ","));
-		accountKey.setEditable(true);
+		final JComboBox<String> uri = new JComboBox<String>(StringUtils.split(preferences.get("azure-table-uri", ""), ","));
+		uri.setEditable(true);
 
 		GridBagConstraints constraints = new GridBagConstraints();
 
@@ -84,7 +78,7 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 		constraints.gridwidth = 1;
 		constraints.insets = new Insets(5, 5, 5, 5);
 
-		contentPanel.add(new JLabel("Protocol:"), constraints);
+		contentPanel.add(new JLabel("URI:"), constraints);
 
 		constraints = new GridBagConstraints();
 		constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -94,44 +88,9 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 		constraints.weightx = 1.0;
 		constraints.insets = new Insets(5, 5, 5, 5);
 
-		contentPanel.add(uriProtocol, constraints);
-
-		constraints.fill = GridBagConstraints.HORIZONTAL;
-		constraints.gridx = 0;
-		constraints.gridy = 2;
-		constraints.gridwidth = 1;
-		constraints.insets = new Insets(5, 5, 5, 5);
-
-		contentPanel.add(new JLabel("Account Name:"), constraints);
-
-		constraints = new GridBagConstraints();
-		constraints.fill = GridBagConstraints.HORIZONTAL;
-		constraints.gridwidth = 3;
-		constraints.gridx = 1;
-		constraints.gridy = 2;
-		constraints.weightx = 1.0;
-		constraints.insets = new Insets(5, 5, 5, 5);
-
-		contentPanel.add(accountName, constraints);
-		constraints.fill = GridBagConstraints.HORIZONTAL;
-		constraints.gridx = 0;
-		constraints.gridy = 3;
-		constraints.gridwidth = 1;
-		constraints.insets = new Insets(5, 5, 5, 5);
-
-		contentPanel.add(new JLabel("Account Key:"), constraints);
-
-		constraints = new GridBagConstraints();
-		constraints.fill = GridBagConstraints.HORIZONTAL;
-		constraints.gridwidth = 3;
-		constraints.gridx = 1;
-		constraints.gridy = 3;
-		constraints.weightx = 1.0;
-		constraints.insets = new Insets(5, 5, 5, 5);
-
-		accountKey.setPreferredSize(new Dimension(120,30));
+		uri.setPreferredSize(new Dimension(120,30));
 		
-		contentPanel.add(accountKey, constraints);
+		contentPanel.add(uri, constraints);
 
 		getContentPane().add(BorderLayout.NORTH, contentPanel);
 		getContentPane().setBackground(Color.WHITE);
@@ -157,12 +116,7 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 			public void actionPerformed(ActionEvent event) {
 
 				try {
-					if (connectAction.connect(ConnectDialog.this, uriProtocol.getEditor().getItem().toString(),
-																  accountName.getEditor().getItem().toString(),
-																  accountKey.getEditor().getItem().toString())) {
-
-						status = STATUS.OK;
-
+					if (connectAction.connect(ConnectDialog.this, uri.getEditor().getItem().toString())) {
 					}
 
 				} catch (Exception e) {
