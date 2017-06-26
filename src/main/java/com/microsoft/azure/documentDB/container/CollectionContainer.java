@@ -1,5 +1,7 @@
 package com.microsoft.azure.documentDB.container;
 
+import java.util.Properties;
+
 import com.microsoft.azure.documentdb.Database;
 import com.microsoft.azure.documentdb.Document;
 import com.microsoft.azure.documentdb.DocumentClient;
@@ -54,6 +56,9 @@ public class CollectionContainer {
 
 		for (Document document : queryResults.getQueryIterable()) {
 			
+			if (builder.length() > 0) {
+				builder.append("\n");
+			}
 			builder.append(document.toJson(SerializationFormattingPolicy.Indented));
 
 		}
@@ -75,5 +80,15 @@ public class CollectionContainer {
 		};
 
 	}
+	
+	public Properties getProperties() {
+		Properties properties = new Properties();
+		
+		properties.put("Created On", collection.getTimestamp());
+
+		return properties;
+	
+	}
+	
 
 }

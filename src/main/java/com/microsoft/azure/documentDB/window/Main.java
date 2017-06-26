@@ -23,6 +23,8 @@ import java.awt.event.WindowListener;
 import java.io.Closeable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 
@@ -93,8 +95,6 @@ public class Main extends JPanel {
 	private FilteredTree databaseTree;
 	private JXMultiSplitPane mainSplitPane;
 	private RTextScrollPane sp;
-	private JPanel rowPanel;
-	private JLabel rowLabel;
 	private JEditorPane cellPane;
 	private JLabel fileNameLabel;
 
@@ -154,24 +154,10 @@ public class Main extends JPanel {
 
 		databaseTree.getTree().getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 
-		rowPanel = new JPanel(new BorderLayout());
-		rowPanel.setBackground(new Color(243, 247, 250));
-
-		rowPanel.setBorder(
-				BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()));
-
-		rowLabel = new JLabel("");
-		rowLabel.setPreferredSize(new Dimension(400, 40));
-
 		cellPane = new JEditorPane("text/html", null);
 		cellPane.setEditable(false);
 
 		JScrollPane scrollPane = new JScrollPane(cellPane);
-
-		scrollPane.setBorder(BorderFactory.createEmptyBorder());
-
-		rowPanel.add(rowLabel, BorderLayout.NORTH);
-		rowPanel.add(scrollPane, BorderLayout.CENTER);
 
 		databaseTree.getTree().setShowsRootHandles(true);
 		databaseTree.getTree().setDragEnabled(true);
@@ -238,7 +224,19 @@ public class Main extends JPanel {
 
 						public void run() {
 
-								QueryResult result = ((CollectionContainer) nodeInfo).getJSONObjects(documentClient);
+							Properties properties = ((CollectionContainer)nodeInfo).getProperties();
+							StringBuilder sb = new StringBuilder("<html><table>");
+							
+							
+							for (Entry<Object,Object> entry : properties.entrySet()) {
+								sb.append("<tr><td>" + entry.getKey() + "</td><td>" +entry.getValue() + "</td></tr>");	
+							}
+							
+							sb.append("</table></html>");
+							cellPane.setText(sb.toString());
+						
+
+							QueryResult result = ((CollectionContainer) nodeInfo).getJSONObjects(documentClient);
 
 							textArea.setText(result.getObjects());
 							sp.setLineNumbersEnabled(true);
@@ -250,9 +248,23 @@ public class Main extends JPanel {
 					});
 
 				} else {
-
+					
 					resetDisplay();
 
+					if (nodeInfo instanceof DatabaseContainer) {
+						Properties properties = ((DatabaseContainer)nodeInfo).getProperties();
+						StringBuilder sb = new StringBuilder("<html><table>");
+						
+						
+						for (Entry<Object,Object> entry : properties.entrySet()) {
+							sb.append("<tr><td>" + entry.getKey() + "</td><td>" +entry.getValue() + "</td></tr>");	
+						}
+						
+						sb.append("</table></html>");
+						cellPane.setText(sb.toString());
+					
+					}
+					
 					enableNavigation(false);
 					searchField.setEnabled(false);
 					searchButton.setEnabled(false);
@@ -372,7 +384,7 @@ public class Main extends JPanel {
 
 		mainSplitPane.add(databaseTree, "left");
 		mainSplitPane.add(component, "middle");
-		mainSplitPane.add(rowPanel, "right");
+		mainSplitPane.add(scrollPane, "right");
 
 		cellPane.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
@@ -618,7 +630,6 @@ public class Main extends JPanel {
 	 */
 	private void resetDisplay() {
 
-		rowLabel.setText("");
 		cellPane.setText("");
 		cellPane.repaint();
 

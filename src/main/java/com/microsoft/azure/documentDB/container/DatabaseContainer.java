@@ -1,5 +1,7 @@
 package com.microsoft.azure.documentDB.container;
 
+import java.util.Properties;
+
 import com.microsoft.azure.documentdb.Database;
 
 public class DatabaseContainer {
@@ -16,6 +18,15 @@ public class DatabaseContainer {
 
 	}
 
+	public Properties getProperties() {
+		Properties properties = new Properties();
+		
+		properties.put("Created On", database.getTimestamp());
+		
+		return properties;
+	
+	}
+	
 	@Override
 	public String toString() {
 
