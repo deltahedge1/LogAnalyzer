@@ -91,15 +91,13 @@ public class ImportTaskDialog extends StandardDialog {
 					boolean headerEnabled = headerRow;
 					List<String> header = new LinkedList<String>();
 
-					int iHeader = 0;
-
 					Database databaseDefinition = new Database();
 
 					databaseDefinition.setId(file.getName());
 
 					Database databaseCache = documentClient.createDatabase(databaseDefinition, null).getResource();
 					DocumentCollection collectionDefinition = new DocumentCollection();
-                    collectionDefinition.setId(file.getName() +".csv");
+                    collectionDefinition.setId("Records");
 
                     DocumentCollection collectionCache = documentClient.createCollection(
                     		databaseCache.getSelfLink(),
@@ -107,14 +105,19 @@ public class ImportTaskDialog extends StandardDialog {
 					for (CSVRecord csvRecord : parser) {
 						JSONObject jsonElement = new JSONObject();
 
+						int iHeader = 0;
+
 						for (String value : csvRecord) {
-							
+
 							setProgressBar(progressBar, size, cis.getCount());
 							
 							if (headerEnabled) {
 								header.add(value);
 							} else {
 								jsonElement.append(header.get(iHeader), value);
+							
+								System.out.println(header.get(iHeader) + ":" + value);
+							
 							}
 
 							headerEnabled = false;
