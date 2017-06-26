@@ -2,8 +2,6 @@ package com.microsoft.azure.documentDB.window;
 
 import static com.microsoft.azure.documentDB.util.WidgetUtils.addAction;
 import static com.microsoft.azure.documentDB.util.WidgetUtils.createImageIcon;
-import static com.microsoft.azure.documentDB.util.WidgetUtils.setColumns;
-import static com.microsoft.azure.documentDB.util.WidgetUtils.setFilter;
 import static com.microsoft.azure.documentDB.util.WidgetUtils.wrap;
 
 import java.awt.BorderLayout;
@@ -27,7 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
-import java.util.prefs.Preferences;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -41,8 +38,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
-import javax.swing.ListSelectionModel;
-import javax.swing.RowSorter;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
@@ -51,14 +46,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableModel;
-import javax.swing.table.TableRowSorter;
-import javax.swing.text.DefaultCaret;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeSelectionModel;
@@ -67,15 +56,18 @@ import org.jdesktop.swingx.JXButton;
 import org.jdesktop.swingx.JXLabel;
 import org.jdesktop.swingx.JXMultiSplitPane;
 import org.jdesktop.swingx.JXTextField;
+import org.jdesktop.swingx.JXTreeTable;
 import org.jdesktop.swingx.MultiSplitLayout;
 
 import com.ezware.dialog.task.TaskDialogs;
 import com.jgoodies.forms.builder.ListViewBuilder;
 import com.jgoodies.looks.plastic.PlasticXPLookAndFeel;
-import com.microsoft.azure.documentDB.container.TableContainer;
+import com.microsoft.azure.documentDB.container.DatabaseContainer;
 import com.microsoft.azure.documentDB.dialog.ConnectDialog;
 import com.microsoft.azure.documentDB.dialog.ConnectDialog.ConnectAction;
-import com.microsoft.azure.documentDB.model.ListModel;
+import com.microsoft.azure.documentDB.dialog.ImportDialog;
+import com.microsoft.azure.documentDB.factory.DocumentClientFactory;
+import com.microsoft.azure.documentDB.model.JsonModel;
 import com.microsoft.azure.documentDB.ui.StandardComboBoxUI;
 import com.microsoft.azure.documentDB.ui.StandardScrollBarUI;
 import com.microsoft.azure.documentDB.util.WidgetUtils.ButtonManager;
@@ -83,7 +75,10 @@ import com.microsoft.azure.documentDB.widget.FilteredTree;
 import com.microsoft.azure.documentDB.widget.GlassPane;
 import com.microsoft.azure.documentDB.widget.ImageButton;
 import com.microsoft.azure.documentDB.widget.SearchTextField;
-import com.microsoft.azure.documentDB.widget.TableView;
+import com.microsoft.azure.documentdb.Database;
+import com.microsoft.azure.documentdb.DocumentClient;
+import com.microsoft.azure.documentdb.FeedOptions;
+import com.microsoft.azure.documentdb.FeedResponse;
 
 @SuppressWarnings("serial")
 public class Main extends JPanel {
@@ -91,7 +86,7 @@ public class Main extends JPanel {
 	final JFrame frame;
 
 	private FilteredTree tableTree;
-	private TableView dataTable;
+	private JXTreeTable dataTable;
 	private JXMultiSplitPane mainSplitPane;
 	private JPanel rowPanel;
 	private JLabel rowLabel;
@@ -99,9 +94,7 @@ public class Main extends JPanel {
 	private JLabel fileNameLabel;
 
 	private JXButton headButton;
-	private JXButton backButton;
 	private JXButton nextButton;
-	private JXButton tailButton;
 
 	JXButton searchButton;
 
@@ -116,8 +109,8 @@ public class Main extends JPanel {
 	private final ButtonManager graphButtons;
 	private final ButtonManager metadataButtons;
 
-	private TableContainer container = null;
-	
+	private DocumentClient documentClient = null;
+
 	final static public ResourceBundle TEXTS = PropertyResourceBundle.getBundle("locale.Texts");
 
 	/**
@@ -159,7 +152,7 @@ public class Main extends JPanel {
 
 		tableTree = new FilteredTree(new DefaultMutableTreeNode());
 		tableTree.getTree().setRootVisible(false);
-		tableTree.getTree().setRowHeight(30);
+		tableTree.getTree().setRowHeight(36);
 
 		tableTree.getTree().getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 
@@ -194,13 +187,9 @@ public class Main extends JPanel {
 						focused);
 
 				if (row == 0) {
-					setIcon(createImageIcon("/images/database-icon-16.png"));
-				} else if (((DefaultMutableTreeNode) value).getUserObject() instanceof TableContainer) {
-					setIcon(createImageIcon("/images/file-16.png"));
-				} else if (expanded) {
-					setIcon(createImageIcon("/images/folder-open-icon-16.png"));
+					setIcon(createImageIcon("/images/clouds-32.png"));
 				} else {
-					setIcon(createImageIcon("/images/folder-icon-16.png"));
+					setIcon(createImageIcon("/images/cosmosdb.png"));
 				}
 
 				return component;
@@ -218,13 +207,7 @@ public class Main extends JPanel {
 			}
 		});
 
-		dataTable = new TableView(new DefaultTableModel());
-		dataTable.setRowHeight(36);
-		dataTable.setRowMargin(4);
-		dataTable.setRowSorter(new TableRowSorter<TableModel>(dataTable.getModel()));
-		dataTable.showHeader(false);
-
-		dataTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		dataTable = new JXTreeTable(new JsonModel());
 
 		tableTree.getTree().addTreeSelectionListener(new TreeSelectionListener() {
 
@@ -238,7 +221,7 @@ public class Main extends JPanel {
 
 				final Object nodeInfo = node.getUserObject();
 
-				if (node.isLeaf() && nodeInfo instanceof TableContainer) {
+				if (node.isLeaf() && nodeInfo instanceof Database) {
 
 					glassPane.activate("Please Wait");
 
@@ -250,22 +233,9 @@ public class Main extends JPanel {
 							cellPane.setText("");
 							cellPane.repaint();
 
-							dataTable.showHeader(true);
-
 							try {
-								dataTable.setModel(new ListModel());
-
 								fileNameLabel.setText(nodeInfo.toString());
 								fileNameLabel.setFont(fileNameLabel.getFont().deriveFont(Font.BOLD, 16));
-
-								((ListModel) dataTable.getModel()).first();
-
-								TableRowSorter<TableModel> sorter = new TableRowSorter<TableModel>(
-										dataTable.getModel());
-								dataTable.setRowSorter(sorter);
-
-								setFilter(dataTable, searchField.getText());
-								setColumns(dataTable, 64, 180);
 
 								enableGraphButtons(true);
 								enableMetadataButtons(true);
@@ -305,57 +275,6 @@ public class Main extends JPanel {
 
 		});
 
-		dataTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-
-			@Override
-			public void valueChanged(ListSelectionEvent event) {
-
-				if (event.getValueIsAdjusting() || (dataTable.getSelectedRow() < 0)) {
-
-					return;
-
-				}
-
-				StringBuilder builder = new StringBuilder("<html><table>");
-
-				for (int iColumn = 0; iColumn < dataTable.getColumnCount(); iColumn++) {
-
-					if (!dataTable.getValueAt(dataTable.getSelectedRow(), iColumn).toString().isEmpty()) {
-
-						if (iColumn != 0) {
-
-							builder.append(
-									"<tr><td width=\"32\" rowspan=\"3\" bgcolor=\"#D3EAF2\" color=\"#4A4A4A\" align=\"right\"><b>");
-							builder.append(iColumn);
-							builder.append("&nbsp;</b></td></tr>");
-							builder.append("<tr><td>");
-							builder.append(dataTable.getModel().getColumnName(iColumn));
-							builder.append("</td></tr><tr><td><i>");
-							builder.append(dataTable.getValueAt(dataTable.getSelectedRow(), iColumn));
-							builder.append("</i><td><tr>");
-
-						}
-					}
-				}
-
-				builder.append("</table></html>");
-
-				final DefaultCaret caret = (DefaultCaret) cellPane.getCaret();
-				caret.setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
-
-				cellPane.setText(builder.toString());
-				cellPane.setFont(fileNameLabel.getFont().deriveFont(Font.PLAIN, 16));
-
-				cellPane.invalidate();
-				cellPane.repaint();
-
-				rowLabel.setText("<html><font size=+1>&nbsp;Row: <b>"
-						+ dataTable.getValueAt(dataTable.getSelectedRow(), 0) + "</b></font></html>");
-
-			}
-
-		});
-
 		tableTree.getTree().addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent e) {
@@ -384,68 +303,12 @@ public class Main extends JPanel {
 		});
 
 		headButton = new JXButton(createImageIcon("/images/begin-icon.png"));
-		backButton = new JXButton(createImageIcon("/images/back-icon.png"));
 		nextButton = new JXButton(createImageIcon("/images/next-icon.png"));
-		tailButton = new JXButton(createImageIcon("/images/end-icon.png"));
 
 		headButton.setBorderPainted(false);
-		backButton.setBorderPainted(false);
 		nextButton.setBorderPainted(false);
-		tailButton.setBorderPainted(false);
-
 		nextButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
-				if (dataTable.getModel() instanceof ListModel) {
-
-					glassPane.activate("Please Wait");
-
-					SwingUtilities.invokeLater(new Runnable() {
-
-						public void run() {
-							((ListModel) dataTable.getModel()).next();
-
-							setFilter(dataTable, searchField.getText());
-
-							dataTable.invalidate();
-							dataTable.repaint();
-
-							glassPane.deactivate();
-
-						}
-
-					});
-
-				}
-
-			}
-
-		});
-
-		backButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-
-				if (dataTable.getModel() instanceof ListModel) {
-
-					glassPane.activate("Please Wait");
-
-					SwingUtilities.invokeLater(new Runnable() {
-
-						public void run() {
-							((ListModel) dataTable.getModel()).back();
-
-							setFilter(dataTable, searchField.getText());
-
-							dataTable.invalidate();
-							dataTable.repaint();
-
-							glassPane.deactivate();
-
-						}
-
-					});
-
-				}
 
 			}
 
@@ -453,58 +316,6 @@ public class Main extends JPanel {
 
 		headButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
-				if (dataTable.getModel() instanceof ListModel) {
-
-					glassPane.activate("Please Wait");
-
-					SwingUtilities.invokeLater(new Runnable() {
-
-						public void run() {
-							((ListModel) dataTable.getModel()).first();
-
-							setFilter(dataTable, searchField.getText());
-
-							dataTable.invalidate();
-							dataTable.repaint();
-
-							glassPane.deactivate();
-
-						}
-
-					});
-
-				}
-
-			}
-
-		});
-
-		tailButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-
-				if (dataTable.getModel() instanceof ListModel) {
-
-					glassPane.activate("Please Wait");
-
-					SwingUtilities.invokeLater(new Runnable() {
-
-						public void run() {
-							((ListModel) dataTable.getModel()).last();
-
-							setFilter(dataTable, searchField.getText());
-
-							dataTable.invalidate();
-							dataTable.repaint();
-
-							glassPane.deactivate();
-
-						}
-
-					});
-
-				}
-
 			}
 
 		});
@@ -515,23 +326,14 @@ public class Main extends JPanel {
 
 			@Override
 			public void removeUpdate(DocumentEvent e) {
-
-				setFilter(dataTable, searchField.getText());
-
 			}
 
 			@Override
 			public void insertUpdate(DocumentEvent e) {
-
-				setFilter(dataTable, searchField.getText());
-
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
-
-				setFilter(dataTable, searchField.getText());
-
 			}
 
 		});
@@ -545,24 +347,21 @@ public class Main extends JPanel {
 		navigationBar.setOpaque(false);
 
 		navigationBar.add(headButton);
-		navigationBar.add(backButton);
 
 		navigationBar.addSeparator(new Dimension(3, 0));
 
 		navigationBar.add(nextButton);
-		navigationBar.add(tailButton);
 
-		JComponent dataPane = dataTable.getScrollPane();
+		JScrollPane sp = new JScrollPane(dataTable);
 
-		dataTable.getScrollPane()
-				.setBorder(BorderFactory.createCompoundBorder(
-						BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()),
-						BorderFactory.createEmptyBorder(2, 2, 2, 2)));
+		sp.setBorder(BorderFactory.createCompoundBorder(
+				BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()),
+				BorderFactory.createEmptyBorder(2, 2, 2, 2)));
 
 		this.fileNameLabel = new JLabel("");
 
 		JComponent component = new ListViewBuilder().border(new EmptyBorder(5, 5, 5, 0)).labelView(fileNameLabel)
-				.listView(dataPane).filterView(wrap(searchField, 2, 0, 0, 1)).listBarView(navigationBar).build();
+				.listView(sp).filterView(wrap(searchField, 2, 0, 0, 1)).listBarView(navigationBar).build();
 
 		component.setBorder(BorderFactory.createCompoundBorder(
 				BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()),
@@ -651,60 +450,61 @@ public class Main extends JPanel {
 
 					@Override
 					public void actionPerformed(ActionEvent event) {
-						ConnectDialog dialog = new ConnectDialog(frame, "Connect to Azure Table Storage", new ConnectAction() {
+						ConnectDialog dialog = new ConnectDialog(frame, "Connect to Azure Table Storage",
+								new ConnectAction() {
 
-							@Override
-							public boolean connect(final Closeable closeable, final String uri) throws Exception {
-								try {
-									
-									SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+									@Override
+									public boolean connect(final Closeable closeable, final String host,
+											final String key) throws Exception {
+										try {
 
-										@Override
-										protected Void doInBackground() throws Exception {
-											
-											System.out.println("IM here a");
+											documentClient = (new DocumentClientFactory(host, key)).getDocumentClient();
 
-											container = new TableContainer(uri);
-											
-											container.createClient();
-
-											System.out.println("IM here b");
-										
-											container.savePreferences();
-											
-											System.out.println("IM here c");
-											
 											populateTableTree();
-											
+
 											closeable.close();
-											
-											System.out.println("IM here d");
 
-											return null;
+											return true;
+
+										} catch (Exception e) {
+											e.printStackTrace();
 										}
-										
-									};
 
-									worker.execute();
-									
-									return true;
-									
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-								
-								return false;
-							
-							}
-						});
-						
+										return false;
+
+									}
+								});
+
 						dialog.setVisible(true);
-						
+
 					};
-					
+
 				});
 
 		toolBar.addSeparator();
+
+		addAction(toolBar, "Import", "/images/upload-icon-24.png", "/images/connect-icon-16.png", new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				ImportDialog dialog = new ImportDialog(frame, "Import CSV File", documentClient,
+						new ImportDialog.ImportAction() {
+
+							@Override
+							public void OnComplete() {
+							}
+
+							@Override
+							public void OnFailure() {
+							}
+
+						});
+
+				dialog.setVisible(true);
+
+			};
+
+		});
 
 		toolBar.add(Box.createHorizontalGlue());
 
@@ -791,33 +591,27 @@ public class Main extends JPanel {
 
 		fileNameLabel.setText("");
 
-		RowSorter<? extends TableModel> sorter = dataTable.getRowSorter();
-
-		dataTable.setRowSorter(sorter);
-
-		dataTable.showHeader(false);
-
 	}
 
-	private void populateTableTree() {	
+	private void populateTableTree() {
 		DefaultMutableTreeNode root = new DefaultMutableTreeNode("Tables");
-		
-		tableTree.setRoot(root);
-		System.out.println("Start");
 
-		Iterable<String> tables = container.listTables();
-		
-		for (String table : tables) {
-			System.out.println("table: '" + table + "'");
-			
-			root.add(new DefaultMutableTreeNode(table));
+		tableTree.setRoot(root);
+		FeedOptions queryOptions = new FeedOptions();
+		queryOptions.setPageSize(-1);
+
+		FeedResponse<Database> databaseList = documentClient.queryDatabases("select * from root", queryOptions);
+
+		for (Database database : databaseList.getQueryIterable()) {
+
+			root.add(new DefaultMutableTreeNode(new DatabaseContainer(database)));
+
 		}
-		System.out.println("End");
-		
+
 		tableTree.getTree().setRootVisible(true);
-		
+
 	}
-	
+
 	/**
 	 * Create and show the GUI
 	 * 
@@ -1012,7 +806,7 @@ public class Main extends JPanel {
 	 */
 	public void enableNavigation(boolean enabled) {
 
-		enableNavigation(false, false, false, false);
+		enableNavigation(false, false);
 
 	}
 
@@ -1021,20 +815,14 @@ public class Main extends JPanel {
 	 * 
 	 * @param top
 	 *            'true' enable top button
-	 * @param back
-	 *            'true' enable back button
 	 * @param next
 	 *            'true' enable next button
-	 * @param last
-	 *            'true' enable last button
 	 * 
 	 */
-	private void enableNavigation(boolean top, boolean back, boolean next, boolean last) {
+	private void enableNavigation(boolean top, boolean next) {
 
 		headButton.setEnabled(top);
-		backButton.setEnabled(back);
 		nextButton.setEnabled(next);
-		tailButton.setEnabled(last);
 
 	}
 

@@ -1,6 +1,7 @@
 package com.microsoft.azure.documentDB.widget;
 
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.GridBagConstraints;
@@ -12,7 +13,6 @@ import java.awt.event.MouseMotionAdapter;
 
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
@@ -29,12 +29,11 @@ public class GlassPane extends JComponent implements KeyListener {
 	private final static Border MESSAGE_BORDER = new EmptyBorder(10, 10, 10, 10);
 	private JLabel message = new JLabel();
 
-	JFrame frame;
-
-	public GlassPane(JFrame frame) {
+	Container container;
+	public GlassPane(Container component) {
 		// Set glass pane properties
 
-		this.frame = frame;
+		this.container = component;
 
 		setOpaque(false);
  		Color background = new Color(250, 250, 250, 128);
@@ -107,7 +106,7 @@ public class GlassPane extends JComponent implements KeyListener {
 	 */
 	public void activate(String text) {
 
-		frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		container.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
 		message.setVisible(true);
 		message.setText(text);
@@ -126,7 +125,7 @@ public class GlassPane extends JComponent implements KeyListener {
 	 */
 	public void deactivate() {
 
-		frame.setCursor(null);
+		container.setCursor(null);
 		setVisible(false);
 
 	}

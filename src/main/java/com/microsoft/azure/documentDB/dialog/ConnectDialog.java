@@ -26,12 +26,14 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jdesktop.swingx.JXButton;
 
 import com.ezware.dialog.task.TaskDialogs;
+import com.microsoft.azure.documentDB.widget.GlassPane;
 import com.microsoft.azure.documentDB.widget.StandardDialog;
 
 @SuppressWarnings("serial")
@@ -39,7 +41,7 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 
 	public interface ConnectAction {
 
-		boolean connect(Closeable closeable, String uri) throws Exception;
+		boolean connect(Closeable closeable, String host, String key) throws Exception;
 
 	}
 
@@ -48,7 +50,7 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 
 		JPanel contentPanel = new JPanel(new GridBagLayout());
 
-		contentPanel.setPreferredSize(new Dimension(350, 160));
+		contentPanel.setPreferredSize(new Dimension(300, 160));
 		contentPanel.setBackground(Color.white);
 
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -57,10 +59,15 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 
 		inputLable.setForeground(Color.BLUE.darker().darker());
 
-		Preferences preferences = Preferences.userRoot();
+		final Preferences preferences = Preferences.userRoot();
 
-		final JComboBox<String> uri = new JComboBox<String>(StringUtils.split(preferences.get("azure-table-uri", ""), ","));
-		uri.setEditable(true);
+		final JComboBox<String> host = new JComboBox<String>(
+				StringUtils.split(preferences.get("azure-cosmosdb-host", ""), ","));
+		host.setEditable(true);
+
+		final JComboBox<String> key = new JComboBox<String>(
+				StringUtils.split(preferences.get("azure-cosmosdb-key", ""), ","));
+		key.setEditable(true);
 
 		GridBagConstraints constraints = new GridBagConstraints();
 
@@ -78,26 +85,45 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 		constraints.gridwidth = 1;
 		constraints.insets = new Insets(5, 5, 5, 5);
 
-		contentPanel.add(new JLabel("URI:"), constraints);
+		contentPanel.add(new JLabel("Host:"), constraints);
 
 		constraints = new GridBagConstraints();
 		constraints.fill = GridBagConstraints.HORIZONTAL;
-		constraints.gridwidth = 3;
+		constraints.gridwidth = 5;
 		constraints.gridx = 1;
 		constraints.gridy = 1;
 		constraints.weightx = 1.0;
 		constraints.insets = new Insets(5, 5, 5, 5);
 
-		uri.setPreferredSize(new Dimension(120,30));
-		
-		contentPanel.add(uri, constraints);
+		host.setPreferredSize(new Dimension(220, 30));
 
+		contentPanel.add(host, constraints);
+
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.gridx = 0;
+		constraints.gridy = 2;
+		constraints.gridwidth = 1;
+
+		constraints.insets = new Insets(5, 5, 5, 5);
+		contentPanel.add(new JLabel("Key:"), constraints);
+
+		constraints = new GridBagConstraints();
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.gridwidth = 5;
+		constraints.gridx = 1;
+		constraints.gridy = 2;
+		constraints.weightx = 1.0;
+		constraints.insets = new Insets(5, 5, 5, 5);
+
+		key.setPreferredSize(new Dimension(220, 30));
+
+		contentPanel.add(key, constraints);
 		getContentPane().add(BorderLayout.NORTH, contentPanel);
 		getContentPane().setBackground(Color.WHITE);
-		
+
 		JPanel buttonPanel = new JPanel(new GridBagLayout());
 
-		JXButton loginButton = new JXButton("Connect", createImageIcon("/images/ok-icon.png"));
+		final JXButton loginButton = new JXButton("Connect", createImageIcon("/images/ok-icon.png"));
 
 		constraints = new GridBagConstraints();
 		constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -108,23 +134,51 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 
 		buttonPanel.add(loginButton, constraints);
 
-		JXButton cancelButton = new JXButton("Cancel", createImageIcon("/images/close-icon.png"));
+		final JXButton cancelButton = new JXButton("Cancel", createImageIcon("/images/close-icon.png"));
 
 		loginButton.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent event) {
+				final GlassPane glassPane  = new GlassPane(ConnectDialog.this);
+				
+				ConnectDialog.this.setEnabled(false);
+				
+				glassPane.activate("Connecting...");
+				
+				ConnectDialog.this.revalidate();
+				
+				SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 
-				try {
-					if (connectAction.connect(ConnectDialog.this, uri.getEditor().getItem().toString())) {
+					@Override
+					protected Void doInBackground() throws Exception {
+						try {
+							
+							if (connectAction.connect(ConnectDialog.this, host.getEditor().getItem().toString(),
+									key.getEditor().getItem().toString())) {
+
+								preferences.put("azure-cosmosdb-host", host.getEditor().getItem().toString());
+								preferences.put("azure-cosmosdb-key", key.getEditor().getItem().toString());
+
+							}
+							
+						} catch (Exception e) {
+
+							TaskDialogs.showException(e);
+
+						}
+						
+						ConnectDialog.this.setEnabled(true);
+						glassPane.deactivate();
+						
+						ConnectDialog.this.revalidate();
+						return null;
+
 					}
-
-				} catch (Exception e) {
-
-					TaskDialogs.showException(e);
-
-				}
-
+					
+				};
+				
+				worker.execute();
 			}
 
 		});
@@ -134,7 +188,10 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 
-				dispose();
+				try {
+					close();
+				} catch (IOException e1) {
+				}
 
 			}
 
@@ -153,7 +210,7 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 
 		decorate(loginButton);
 		decorate(cancelButton);
-		
+
 		getContentPane().add(BorderLayout.SOUTH, buttonPanel);
 
 		pack();

@@ -23,7 +23,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 
-import com.microsoft.azure.documentDB.container.TableContainer;
+import com.microsoft.azure.documentdb.Database;
 
 /**
  * Tree widget which allows the tree to be filtered on keystroke time. Only
@@ -144,7 +144,7 @@ public class FilteredTree extends JPanel {
 		DefaultMutableTreeNode node = copyNode(root);
 		final Object nodeInfo = node.getUserObject();
 
-		if (nodeInfo instanceof TableContainer && text.trim().toString().equals("")) {
+		if (nodeInfo instanceof Database && text.trim().toString().equals("")) {
 
 			originalTreeModel.setRoot(root);
 
@@ -331,7 +331,7 @@ public class FilteredTree extends JPanel {
 				// if it does not start with the text then snip it off its
 				// parent
 
-				if (leaf.getUserObject() instanceof TableContainer && !leaf.toString().contains(textToMatch)) {
+				if (leaf.getUserObject() instanceof Database && !leaf.toString().contains(textToMatch)) {
 
 					clean(leaf);
 
@@ -351,7 +351,7 @@ public class FilteredTree extends JPanel {
 		boolean cleanFolders(DefaultMutableTreeNode parent, DefaultMutableTreeNode child) {
 			boolean unclean = false;
 
-			if (!(((DefaultMutableTreeNode) (child)).getUserObject() instanceof TableContainer) && child.isLeaf()) {
+			if (!(((DefaultMutableTreeNode) (child)).getUserObject() instanceof Database) && child.isLeaf()) {
 
 				parent.remove(child);
 
