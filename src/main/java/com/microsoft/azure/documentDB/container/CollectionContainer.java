@@ -1,6 +1,7 @@
 package com.microsoft.azure.documentDB.container;
 
 import java.util.Properties;
+import java.util.UUID;
 
 import com.microsoft.azure.documentdb.Database;
 import com.microsoft.azure.documentdb.Document;
@@ -47,10 +48,10 @@ public class CollectionContainer {
 
 	public QueryResult getJSONObjects(DocumentClient documentClient) {
 		FeedOptions queryOptions = new FeedOptions();
-		queryOptions.setPageSize(10);
+		queryOptions.setMaxBufferedItemCount(100);
 		queryOptions.setEnableCrossPartitionQuery(true);
 
-		FeedResponse<Document> queryResults = documentClient.queryDocuments(collection.getSelfLink(), "SELECT * from c	" ,
+		final FeedResponse<Document> queryResults = documentClient.queryDocuments(collection.getSelfLink(), "SELECT TOP 100 * from c	" ,
 				queryOptions);
 		final StringBuilder builder = new StringBuilder();
 
