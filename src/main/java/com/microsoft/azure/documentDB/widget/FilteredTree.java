@@ -50,11 +50,11 @@ public class FilteredTree extends JPanel {
 	}
 
 	private void guiLayout() {
- 
+
 		tree.setCellRenderer(new Renderer());
- 
+
 		tree.setUI(new javax.swing.plaf.basic.BasicTreeUI() {
-					
+
 			protected void paintHorizontalLine(Graphics g, JComponent c, int y, int left, int right) {
 			}
 
@@ -76,17 +76,17 @@ public class FilteredTree extends JPanel {
 			public Icon getCollapsedIcon() {
 				return createImageIcon("/images/collapsed-icon.png");
 			}
-			
-		    public int getRightChildIndent() {
-		        return 10;
-		    }
 
-		    public int getLeftChildIndent() {
-		        return 10;
-		    }
-		    
+			public int getRightChildIndent() {
+				return 10;
+			}
+
+			public int getLeftChildIndent() {
+				return 10;
+			}
+
 		});
- 
+
 		tree.setShowsRootHandles(true);
 
 		final SearchTextField searchField = new SearchTextField(createImageIcon("/images/filter-icon-16.png"),
@@ -116,17 +116,18 @@ public class FilteredTree extends JPanel {
 		tree.setModel(originalTreeModel);
 
 		this.setLayout(new BorderLayout(5, 5));
-		
+
 		JPanel searchPanel = new JPanel(new BorderLayout());
-		
+
 		searchPanel.setBorder(
 				BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()));
 		searchPanel.add(searchField);
-		
+
 		add(searchPanel, BorderLayout.NORTH);
 		add(scrollpane = new JScrollPane(tree), BorderLayout.CENTER);
 
-		scrollpane.setBorder(BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()));
+		scrollpane.setBorder(
+				BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()));
 
 	}
 
@@ -228,7 +229,7 @@ public class FilteredTree extends JPanel {
 					font = new Font("Dialog", Font.PLAIN, font.getSize());
 					component.setFont(font);
 				}
-			
+
 			}
 
 			return component;

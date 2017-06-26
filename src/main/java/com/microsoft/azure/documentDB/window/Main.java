@@ -64,6 +64,7 @@ import org.jdesktop.swingx.MultiSplitLayout;
 import com.jgoodies.forms.builder.ListViewBuilder;
 import com.jgoodies.looks.plastic.PlasticXPLookAndFeel;
 import com.microsoft.azure.documentDB.container.CollectionContainer;
+import com.microsoft.azure.documentDB.container.CollectionContainer.QueryResult;
 import com.microsoft.azure.documentDB.container.DatabaseContainer;
 import com.microsoft.azure.documentDB.dialog.ConnectDialog;
 import com.microsoft.azure.documentDB.dialog.ConnectDialog.ConnectAction;
@@ -89,9 +90,9 @@ public class Main extends JPanel {
 
 	final JFrame frame;
 
-	private FilteredTree tableTree;
+	private FilteredTree databaseTree;
 	private JXMultiSplitPane mainSplitPane;
-	private RTextScrollPane  sp;
+	private RTextScrollPane sp;
 	private JPanel rowPanel;
 	private JLabel rowLabel;
 	private JEditorPane cellPane;
@@ -102,7 +103,7 @@ public class Main extends JPanel {
 
 	JXButton searchButton;
 	RSyntaxTextArea textArea = new RSyntaxTextArea(20, 60);
-	
+
 	private SearchTextField searchField;
 	private JXTextField globalSearchField;
 
@@ -147,11 +148,11 @@ public class Main extends JPanel {
 
 		frame.getRootPane().setGlassPane(glassPane);
 
-		tableTree = new FilteredTree(new DefaultMutableTreeNode());
-		tableTree.getTree().setRootVisible(false);
-		tableTree.getTree().setRowHeight(36);
+		databaseTree = new FilteredTree(new DefaultMutableTreeNode());
+		databaseTree.getTree().setRootVisible(false);
+		databaseTree.getTree().setRowHeight(36);
 
-		tableTree.getTree().getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+		databaseTree.getTree().getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 
 		rowPanel = new JPanel(new BorderLayout());
 		rowPanel.setBackground(new Color(243, 247, 250));
@@ -172,11 +173,11 @@ public class Main extends JPanel {
 		rowPanel.add(rowLabel, BorderLayout.NORTH);
 		rowPanel.add(scrollPane, BorderLayout.CENTER);
 
-		tableTree.getTree().setShowsRootHandles(true);
-		tableTree.getTree().setDragEnabled(true);
-		tableTree.getTree().setDropMode(DropMode.ON_OR_INSERT);
+		databaseTree.getTree().setShowsRootHandles(true);
+		databaseTree.getTree().setDragEnabled(true);
+		databaseTree.getTree().setDropMode(DropMode.ON_OR_INSERT);
 
-		tableTree.getTree().setCellRenderer(new DefaultTreeCellRenderer() {
+		databaseTree.getTree().setCellRenderer(new DefaultTreeCellRenderer() {
 			@Override
 			public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded,
 					boolean isLeaf, int row, boolean focused) {
@@ -185,9 +186,9 @@ public class Main extends JPanel {
 
 				if (row == 0) {
 					setIcon(createImageIcon("/images/clouds-32.png"));
-				} else if (isLeaf) {
+				} else if (((DefaultMutableTreeNode)value).getUserObject() instanceof CollectionContainer) {
 					setIcon(createImageIcon("/images/collection-icon-32.png"));
-				} else {	
+				} else {
 					setIcon(createImageIcon("/images/cosmosdb.png"));
 				}
 
@@ -206,29 +207,30 @@ public class Main extends JPanel {
 			}
 		});
 
-		textArea =new RSyntaxTextArea();
+		textArea = new RSyntaxTextArea();
 		textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JSON);
 		textArea.setCodeFoldingEnabled(true);
 		textArea.setEditable(false);
 		textArea.setHighlightCurrentLine(false);
+		textArea.setAntiAliasingEnabled(true);
 		textArea.setFont(textArea.getFont().deriveFont((float) 14.0));
-	      
-		tableTree.getTree().addTreeSelectionListener(new TreeSelectionListener() {
+
+		databaseTree.getTree().addTreeSelectionListener(new TreeSelectionListener() {
 
 			@Override
 			public void valueChanged(TreeSelectionEvent e) {
-				DefaultMutableTreeNode node = (DefaultMutableTreeNode) tableTree.getTree()
+				DefaultMutableTreeNode node = (DefaultMutableTreeNode) databaseTree.getTree()
 						.getLastSelectedPathComponent();
 
 				if (node == null) {
-					
+
 					return;
-					
+
 				}
 
 				final Object nodeInfo = node.getUserObject();
 
-				if (node.isLeaf() && nodeInfo instanceof DatabaseContainer) {
+				if (node.isLeaf() && nodeInfo instanceof CollectionContainer) {
 
 					glassPane.activate("Please Wait");
 
@@ -236,10 +238,11 @@ public class Main extends JPanel {
 
 						public void run() {
 
-							System.out.println("I am getting database objects");
-							
-							((DatabaseContainer)nodeInfo).getJSONObjects(documentClient);
-							
+								QueryResult result = ((CollectionContainer) nodeInfo).getJSONObjects(documentClient);
+
+							textArea.setText(result.getObjects());
+							sp.setLineNumbersEnabled(true);
+							textArea.setCaretPosition(0);
 							glassPane.deactivate();
 
 						}
@@ -260,13 +263,13 @@ public class Main extends JPanel {
 
 		});
 
-		tableTree.getTree().addMouseListener(new MouseAdapter() {
+		databaseTree.getTree().addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseReleased(MouseEvent e) {
 
 				if (SwingUtilities.isRightMouseButton(e)) {
 
-					final DefaultMutableTreeNode node = (DefaultMutableTreeNode) tableTree.getTree()
+					final DefaultMutableTreeNode node = (DefaultMutableTreeNode) databaseTree.getTree()
 							.getLastSelectedPathComponent();
 
 					if (node == null) {
@@ -342,11 +345,11 @@ public class Main extends JPanel {
 		sp.setBorder(BorderFactory.createCompoundBorder(
 				BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()),
 				BorderFactory.createEmptyBorder(2, 2, 2, 2)));
-		
+
 		sp.setLineNumbersEnabled(false);
-		sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);	
+		sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-		
+
 		this.fileNameLabel = new JLabel("");
 
 		JComponent component = new ListViewBuilder().border(new EmptyBorder(5, 5, 5, 0)).labelView(fileNameLabel)
@@ -367,7 +370,7 @@ public class Main extends JPanel {
 		mainSplitPane.getMultiSplitLayout().setModel(modelRoot);
 		mainSplitPane.getMultiSplitLayout().setLayoutByWeight(true);
 
-		mainSplitPane.add(tableTree, "left");
+		mainSplitPane.add(databaseTree, "left");
 		mainSplitPane.add(component, "middle");
 		mainSplitPane.add(rowPanel, "right");
 
@@ -471,52 +474,64 @@ public class Main extends JPanel {
 				});
 
 		toolBar.addSeparator();
-		
+
 		addAction(toolBar, "New Database", "/images/index-icon-24.png", "/images/index-icon-24.png",
 				new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				NewDatabaseDialog dialog = new NewDatabaseDialog(frame, "New Database", new NewDatabaseAction() {
-					
 					@Override
-					public boolean select(String path) throws Exception {
-			
-						Database database = new Database();
+					public void actionPerformed(ActionEvent event) {
+						NewDatabaseDialog dialog = new NewDatabaseDialog(frame, "New Database",
+								new NewDatabaseAction() {
 
-						database.setId(path);
-						
-						RequestOptions requestOptions = new RequestOptions();
+									@Override
+									public boolean select(String path) throws Exception {
 
-						documentClient.createDatabase(database, requestOptions);
-						
-						populateTableTree();
-						
-						return true;
-					}
+										Database database = new Database();
+
+										database.setId(path);
+
+										RequestOptions requestOptions = new RequestOptions();
+
+										documentClient.createDatabase(database, requestOptions);
+
+										populateTableTree();
+
+										return true;
+									}
+								});
+
+						dialog.setVisible(true);
+
+					};
+
 				});
-				
-				dialog.setVisible(true);
-						
-			};
-		
-		});
-	
+
 		addAction(toolBar, "Import", "/images/upload-icon-24.png", "/images/connect-icon-16.png", new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				ImportDialog dialog = new ImportDialog(frame, "Import CSV File", documentClient,
+				final DefaultMutableTreeNode node = (DefaultMutableTreeNode) databaseTree.getTree()
+						.getLastSelectedPathComponent();
+
+				if (node.isRoot()) {
+
+					return;
+
+				}
+
+				Database database = node.getUserObject() instanceof DatabaseContainer
+						? ((DatabaseContainer) node.getUserObject()).getDatabase()
+						: ((CollectionContainer) node.getUserObject()).getDatabase();
+
+				ImportDialog dialog = new ImportDialog(frame, "Import CSV File", documentClient, database,
 						new ImportDialog.ImportAction() {
 
 							@Override
-							public void OnComplete(Database database, DocumentCollection collectionDefinition) {
-							
-								populateTableTree();
-								
+							public void OnFailure() {
 							}
 
 							@Override
-							public void OnFailure() {
+							public void OnComplete(CollectionContainer container) {
+								populateTableTree();
 							}
 
 						});
@@ -526,7 +541,7 @@ public class Main extends JPanel {
 			};
 
 		});
-	
+
 		toolBar.add(Box.createHorizontalGlue());
 
 		JPanel searchPanel = new JPanel(new BorderLayout());
@@ -614,28 +629,29 @@ public class Main extends JPanel {
 	private void populateTableTree() {
 		DefaultMutableTreeNode root = new DefaultMutableTreeNode("Tables");
 
-		tableTree.setRoot(root);
+		databaseTree.setRoot(root);
 		FeedOptions queryOptions = new FeedOptions();
 		queryOptions.setPageSize(-1);
 
 		FeedResponse<Database> databaseList = documentClient.queryDatabases("select * from root", queryOptions);
 
-		for (Database database : databaseList.getQueryIterable()) {	
+		for (Database database : databaseList.getQueryIterable()) {
 			DefaultMutableTreeNode node = new DefaultMutableTreeNode(new DatabaseContainer(database));
-			
+
 			root.add(node);
 
-			FeedResponse<DocumentCollection> documentCollections = documentClient.queryCollections(database.getSelfLink(), "SELECT * FROM root", queryOptions);
-			
+			FeedResponse<DocumentCollection> documentCollections = documentClient
+					.queryCollections(database.getSelfLink(), "SELECT * FROM root", queryOptions);
+
 			for (DocumentCollection collection : documentCollections.getQueryIterable()) {
-				
+
 				node.add(new DefaultMutableTreeNode(new CollectionContainer(database, collection)));
-				
+
 			}
-			
+
 		}
 
-		tableTree.getTree().setRootVisible(true);
+		databaseTree.getTree().setRootVisible(true);
 
 	}
 

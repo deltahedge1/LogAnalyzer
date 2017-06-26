@@ -144,20 +144,20 @@ public class StandardScrollBarUI extends BasicScrollBarUI {
 	public static ComponentUI createUI(JComponent c) {
 		return new StandardScrollBarUI();
 	}
-	
+
 	@Override
 	protected JButton createDecreaseButton(int orientation) {
-		
-		return orientation == SwingConstants.NORTH ? createButton("/images/arrow-up-16.png", 22, 18) :
-			createButton("/images/arrow-left-16.png", 20, 14);
+
+		return orientation == SwingConstants.NORTH ? createButton("/images/arrow-up-16.png", 22, 18)
+				: createButton("/images/arrow-left-16.png", 20, 14);
 	}
 
 	@Override
 	protected JButton createIncreaseButton(int orientation) {
-		
-		return orientation == SwingConstants.SOUTH ? createButton("/images/arrow-down-16.png", 22, 18) :
-			createButton("/images/arrow-right-16.png", 18, 14);
-	
+
+		return orientation == SwingConstants.SOUTH ? createButton("/images/arrow-down-16.png", 22, 18)
+				: createButton("/images/arrow-right-16.png", 18, 14);
+
 	}
 
 	private JButton createButton(String imageFile, int width, int height) {
@@ -170,18 +170,18 @@ public class StandardScrollBarUI extends BasicScrollBarUI {
 		button.setIcon(createImageIcon(imageFile));
 
 		button.setBorderPainted(false);
-		
+
 		button.setUI(new BorderlessButtonUI());
 
 		return button;
 
 	}
-	
+
 	@Override
 	public Dimension getPreferredSize(JComponent c) {
-	
+
 		return new Dimension(20, 20);
-					
+
 	}
 
 	@Override
@@ -192,4 +192,3 @@ public class StandardScrollBarUI extends BasicScrollBarUI {
 	}
 
 }
-

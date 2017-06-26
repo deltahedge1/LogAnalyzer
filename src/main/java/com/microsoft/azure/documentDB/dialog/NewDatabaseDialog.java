@@ -43,8 +43,7 @@ public class NewDatabaseDialog extends StandardDialog {
 
 	}
 
-
-	public NewDatabaseDialog(final JFrame frame, final String title, final NewDatabaseAction action){
+	public NewDatabaseDialog(final JFrame frame, final String title, final NewDatabaseAction action) {
 		super(frame, title, false);
 
 		JPanel contentPanel = new JPanel(new GridBagLayout());
@@ -54,7 +53,7 @@ public class NewDatabaseDialog extends StandardDialog {
 
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
-		JLabel inputLable = new JLabel("Enter Graph Folder :");
+		JLabel inputLable = new JLabel("Enter Database Name :");
 
 		inputLable.setForeground(Color.BLUE.darker().darker());
 

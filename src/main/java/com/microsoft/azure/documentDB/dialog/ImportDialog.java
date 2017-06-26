@@ -27,6 +27,7 @@ import javax.swing.border.EmptyBorder;
 import org.apache.commons.csv.CSVFormat;
 import org.jdesktop.swingx.JXButton;
 
+import com.microsoft.azure.documentDB.container.CollectionContainer;
 import com.microsoft.azure.documentDB.widget.StandardDialog;
 import com.microsoft.azure.documentdb.Database;
 import com.microsoft.azure.documentdb.DocumentClient;
@@ -34,17 +35,19 @@ import com.microsoft.azure.documentdb.DocumentCollection;
 
 @SuppressWarnings("serial")
 public class ImportDialog extends StandardDialog {
-	
+
 	public interface ImportAction {
-		
-		void OnComplete(Database database, DocumentCollection collectionDefinition);
+
+		void OnComplete(CollectionContainer container);
+
 		void OnFailure();
-		
+
 	}
-	
+
 	JTree tree;
 
-	public ImportDialog(final JFrame frame, String title, final DocumentClient documentClient, final ImportAction importAction) {
+	public ImportDialog(final JFrame frame, String title, final DocumentClient documentClient, final Database database,
+			final ImportAction importAction) {
 		super(frame, "Upload Dialog", false);
 
 		JPanel contentPanel = new JPanel(new GridBagLayout());
@@ -56,8 +59,8 @@ public class ImportDialog extends StandardDialog {
 		JLabel fileNameLabel = new JLabel("FileName:");
 		final JTextField fileNameField = new JTextField();
 		JButton fileNameSelect = new JButton(createImageIcon("/images/folder-icon.png"));
-		fileNameSelect.setPreferredSize(new Dimension(32,32));
-		fileNameSelect.setMinimumSize(new Dimension(32,32));
+		fileNameSelect.setPreferredSize(new Dimension(32, 32));
+		fileNameSelect.setMinimumSize(new Dimension(32, 32));
 
 		fileNameSelect.addActionListener(new ActionListener() {
 
@@ -66,7 +69,7 @@ public class ImportDialog extends StandardDialog {
 				final JFileChooser fileChooser = new JFileChooser();
 
 				fileChooser.setPreferredSize(new Dimension(800, 500));
-				
+
 				int returnVal = fileChooser.showOpenDialog(frame);
 
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -173,8 +176,9 @@ public class ImportDialog extends StandardDialog {
 					format = format.withEscape(escapeField.getText().trim().charAt(0));
 
 				}
-				
-				new ImportTaskDialog(frame, file, format, headerRow.isSelected(), documentClient, importAction);
+
+				new ImportTaskDialog(frame, file, format, headerRow.isSelected(), documentClient, database,
+						importAction);
 
 			}
 
@@ -215,7 +219,7 @@ public class ImportDialog extends StandardDialog {
 
 		getContentPane().add(BorderLayout.SOUTH, buttonPanel);
 		getContentPane().setBackground(Color.white);
-		
+
 		buttonPanel.setPreferredSize(new Dimension(400, 50));
 		setSize(600, 320);
 

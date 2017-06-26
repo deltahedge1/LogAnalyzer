@@ -29,7 +29,7 @@ class IconTextField extends JXTextField {
 		iconWidth = icon.getIconWidth();
 		iconHeight = icon.getIconHeight();
 
-	 	setBorder(new EmptyBorder(7, 7 + iconWidth, 10, 10));
+		setBorder(new EmptyBorder(7, 7 + iconWidth, 10, 10));
 
 	}
 
@@ -68,7 +68,7 @@ public class SearchTextField extends IconTextField implements FocusListener {
 
 		this.textWhenNotFocused = text;
 		this.addFocusListener(this);
-		
+
 	}
 
 	/**
@@ -135,7 +135,7 @@ public class SearchTextField extends IconTextField implements FocusListener {
 			graphics.setColor(prevColor);
 
 		}
- 
+
 	}
 
 	/**

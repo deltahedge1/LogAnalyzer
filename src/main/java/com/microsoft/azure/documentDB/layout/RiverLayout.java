@@ -18,10 +18,10 @@ import java.util.Vector;
  * flow like a "river". RiverLayout is however much more powerful than
  * FlowLayout: Components added with the add() method generally gets laid out
  * horizontally, but one may add a string before the component being added to
- * specify "constraints" like this: add("br hfill", new JTextField(
- * "Your name here"); The code above forces a "line break" and extends the added
- * component horizontally. Without the "hfill" constraint, the component would
- * take on its preferred size.
+ * specify "constraints" like this: add("br hfill", new JTextField( "Your name
+ * here"); The code above forces a "line break" and extends the added component
+ * horizontally. Without the "hfill" constraint, the component would take on its
+ * preferred size.
  * </p>
  * <p>
  * List of constraints:

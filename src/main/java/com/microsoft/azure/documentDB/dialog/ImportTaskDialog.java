@@ -27,6 +27,7 @@ import org.apache.commons.io.input.CountingInputStream;
 import org.json.JSONObject;
 
 import com.ezware.dialog.task.TaskDialogs;
+import com.microsoft.azure.documentDB.container.CollectionContainer;
 import com.microsoft.azure.documentDB.dialog.ImportDialog.ImportAction;
 import com.microsoft.azure.documentDB.widget.StandardDialog;
 import com.microsoft.azure.documentdb.Database;
@@ -38,7 +39,7 @@ import com.microsoft.azure.documentdb.DocumentCollection;
 public class ImportTaskDialog extends StandardDialog {
 
 	public ImportTaskDialog(final JFrame frame, final File file, final CSVFormat format, final boolean headerRow,
-			final DocumentClient documentClient, ImportAction importAction) {
+			final DocumentClient documentClient, final Database database, ImportAction importAction) {
 		super(frame, "Importing File '" + file.getName() + "'", false);
 
 		JPanel contentPanel = new JPanel(new BorderLayout(5, 5));
@@ -89,18 +90,11 @@ public class ImportTaskDialog extends StandardDialog {
 					boolean headerEnabled = headerRow;
 					List<String> header = new LinkedList<String>();
 
-					Database databaseDefinition = new Database();
-
-					databaseDefinition.setId(file.getName());
-
-					Database databaseCache = documentClient.createDatabase(databaseDefinition, null).getResource();
-					
 					DocumentCollection collectionDefinition = new DocumentCollection();
-                    collectionDefinition.setId("Records");
+					collectionDefinition.setId(file.getName());
 
-                    DocumentCollection collectionCache = documentClient.createCollection(
-                    		databaseCache.getSelfLink(),
-                            collectionDefinition, null).getResource();
+					DocumentCollection collection = documentClient
+							.createCollection(database.getSelfLink(), collectionDefinition, null).getResource();
 					for (CSVRecord csvRecord : parser) {
 						JSONObject jsonElement = new JSONObject();
 
@@ -109,28 +103,31 @@ public class ImportTaskDialog extends StandardDialog {
 						for (String value : csvRecord) {
 
 							setProgressBar(progressBar, size, cis.getCount());
-							
+
 							if (headerEnabled) {
 								header.add(value);
 							} else {
-								jsonElement.append(header.get(iHeader), value);
-							
+								if (iHeader < header.size()) {
+									jsonElement.put(header.get(iHeader), value);
+								}
 							}
 
 							iHeader += 1;
 
 						}
-						
+
 						if (!headerEnabled) {
-						
-							Document document = new Document(jsonElement);
-						
-							documentClient.createDocument(collectionCache.getSelfLink(), document, null, false);
+
+							Document document = new Document(jsonElement.toString());
+							
+							documentClient.createDocument(collection.getSelfLink(), document, null, false);
 						}
-						
+
 						headerEnabled = false;
 
 					}
+
+					importAction.OnComplete(new CollectionContainer(database, collection));
 					
 				} catch (Exception e) {
 

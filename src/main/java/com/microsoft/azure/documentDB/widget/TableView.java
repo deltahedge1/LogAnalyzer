@@ -54,7 +54,7 @@ public class TableView extends JTable {
 		setShowGrid(false);
 
 		scrollPane = TableView.createStripedJScrollPane(this);
-		
+
 	}
 
 	/**
@@ -269,7 +269,6 @@ public class TableView extends JTable {
 		scrollPane.setViewport(new StripedViewport(table, scrollPane));
 		scrollPane.getViewport().setView(table);
 		scrollPane.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
-
 
 		return scrollPane;
 

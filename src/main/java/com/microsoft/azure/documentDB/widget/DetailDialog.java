@@ -122,7 +122,7 @@ public class DetailDialog extends StandardDialog {
 		});
 
 		setPreferredSize(new Dimension(1200, 800));
-		
+
 		setLocationRelativeTo(frame);
 
 	}

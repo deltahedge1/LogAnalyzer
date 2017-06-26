@@ -111,7 +111,7 @@ public class PropertyDialog extends StandardDialog {
 		decorate(acceptButton);
 		decorate(saveButton);
 		decorate(closeButton);
-		
+
 		buttonPanel.add(acceptButton);
 		buttonPanel.add(saveButton);
 		buttonPanel.add(closeButton);

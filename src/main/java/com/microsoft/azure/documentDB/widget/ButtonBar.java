@@ -10,9 +10,9 @@ public class ButtonBar extends JButtonBar {
 	public ButtonBar(int orientation) {
 		super(orientation);
 		setOpaque(false);
-		
+
 		setBackground(new Color(210, 225, 240));
-	
+
 	}
-	
+
 }

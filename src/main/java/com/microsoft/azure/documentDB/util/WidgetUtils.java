@@ -283,8 +283,8 @@ public class WidgetUtils {
 	 * @return a Button Manager
 	 * 
 	 */
-	public static ButtonManager addAction(JToolBar toolBar, String tooltip, String buttonImage,
-			String itemImage, ActionListener listener) {
+	public static ButtonManager addAction(JToolBar toolBar, String tooltip, String buttonImage, String itemImage,
+			ActionListener listener) {
 		JXButton button = new JXButton(createImageIcon(buttonImage));
 		JMenuItem menuItem = new JMenuItem(tooltip, createImageIcon(itemImage));
 
@@ -438,9 +438,9 @@ public class WidgetUtils {
 
 		panel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createEmptyBorder(top, left, bottom, right),
 				BorderFactory.createCompoundBorder(
-				BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()),
-				BorderFactory.createEmptyBorder(1, 1, 1, 1))));
-		
+						BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()),
+						BorderFactory.createEmptyBorder(1, 1, 1, 1))));
+
 		panel.add(component, BorderLayout.CENTER);
 
 		return panel;

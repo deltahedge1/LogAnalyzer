@@ -140,20 +140,20 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 
 			@Override
 			public void actionPerformed(ActionEvent event) {
-				final GlassPane glassPane  = new GlassPane(ConnectDialog.this);
-				
+				final GlassPane glassPane = new GlassPane(ConnectDialog.this);
+
 				ConnectDialog.this.setEnabled(false);
-				
+
 				glassPane.activate("Connecting...");
-				
+
 				ConnectDialog.this.revalidate();
-				
+
 				SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
 
 					@Override
 					protected Void doInBackground() throws Exception {
 						try {
-							
+
 							if (connectAction.connect(ConnectDialog.this, host.getEditor().getItem().toString(),
 									key.getEditor().getItem().toString())) {
 
@@ -161,23 +161,23 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 								preferences.put("azure-cosmosdb-key", key.getEditor().getItem().toString());
 
 							}
-							
+
 						} catch (Exception e) {
 
 							TaskDialogs.showException(e);
 
 						}
-						
+
 						ConnectDialog.this.setEnabled(true);
 						glassPane.deactivate();
-						
+
 						ConnectDialog.this.revalidate();
 						return null;
 
 					}
-					
+
 				};
-				
+
 				worker.execute();
 			}
 

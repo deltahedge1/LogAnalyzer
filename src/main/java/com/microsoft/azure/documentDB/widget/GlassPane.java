@@ -30,14 +30,15 @@ public class GlassPane extends JComponent implements KeyListener {
 	private JLabel message = new JLabel();
 
 	Container container;
+
 	public GlassPane(Container component) {
 		// Set glass pane properties
 
 		this.container = component;
 
 		setOpaque(false);
- 		Color background = new Color(250, 250, 250, 128);
-	 	setBackground(background);
+		Color background = new Color(250, 250, 250, 128);
+		setBackground(background);
 		setLayout(new GridBagLayout());
 
 		// Add a message label to the glass pane

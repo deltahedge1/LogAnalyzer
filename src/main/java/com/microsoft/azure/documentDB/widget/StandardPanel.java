@@ -32,7 +32,7 @@ abstract public class StandardPanel extends JPanel implements LoadActions {
 		this.unloadButton = new JXButton("Unload", createImageIcon("/images/export-icon.png"));
 
 		decorate(unloadButton);
-		
+
 		unloadButton.addActionListener(new ActionListener() {
 
 			@Override
@@ -98,8 +98,7 @@ abstract public class StandardPanel extends JPanel implements LoadActions {
 
 		button.setPreferredSize(new Dimension(120, 35));
 		button.setMinimumSize(new Dimension(120, 35));
-		
-		
+
 	}
-	
+
 }

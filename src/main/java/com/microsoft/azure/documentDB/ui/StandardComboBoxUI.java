@@ -16,13 +16,13 @@ public class StandardComboBoxUI extends BasicComboBoxUI {
 
 	protected JButton createArrowButton() {
 		JButton button = new BasicArrowButton(BasicArrowButton.SOUTH);
-	
+
 		button.setBorderPainted(false);
 		button.setOpaque(false);
-		button.setContentAreaFilled(false);		
+		button.setContentAreaFilled(false);
 		button.setBackground(Color.white);
 		return button;
-	
+
 	}
 
 }
