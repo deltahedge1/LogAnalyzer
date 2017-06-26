@@ -88,6 +88,11 @@
 			<artifactId>TaskDialog</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+		<dependency>
+    		<groupId>com.fifesoft</groupId>
+    		<artifactId>rsyntaxtextarea</artifactId>
+    		<version>2.6.1</version>
+		</dependency>
 
   </dependencies>
 </project>

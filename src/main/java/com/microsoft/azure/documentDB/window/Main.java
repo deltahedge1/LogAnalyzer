@@ -38,8 +38,8 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
@@ -52,33 +52,37 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreeSelectionModel;
 
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jdesktop.swingx.JXButton;
 import org.jdesktop.swingx.JXLabel;
 import org.jdesktop.swingx.JXMultiSplitPane;
 import org.jdesktop.swingx.JXTextField;
-import org.jdesktop.swingx.JXTreeTable;
 import org.jdesktop.swingx.MultiSplitLayout;
 
-import com.ezware.dialog.task.TaskDialogs;
 import com.jgoodies.forms.builder.ListViewBuilder;
 import com.jgoodies.looks.plastic.PlasticXPLookAndFeel;
+import com.microsoft.azure.documentDB.container.CollectionContainer;
 import com.microsoft.azure.documentDB.container.DatabaseContainer;
 import com.microsoft.azure.documentDB.dialog.ConnectDialog;
 import com.microsoft.azure.documentDB.dialog.ConnectDialog.ConnectAction;
 import com.microsoft.azure.documentDB.dialog.ImportDialog;
+import com.microsoft.azure.documentDB.dialog.NewDatabaseDialog;
+import com.microsoft.azure.documentDB.dialog.NewDatabaseDialog.NewDatabaseAction;
 import com.microsoft.azure.documentDB.factory.DocumentClientFactory;
-import com.microsoft.azure.documentDB.model.JsonModel;
 import com.microsoft.azure.documentDB.ui.StandardComboBoxUI;
 import com.microsoft.azure.documentDB.ui.StandardScrollBarUI;
-import com.microsoft.azure.documentDB.util.WidgetUtils.ButtonManager;
 import com.microsoft.azure.documentDB.widget.FilteredTree;
 import com.microsoft.azure.documentDB.widget.GlassPane;
 import com.microsoft.azure.documentDB.widget.ImageButton;
 import com.microsoft.azure.documentDB.widget.SearchTextField;
 import com.microsoft.azure.documentdb.Database;
 import com.microsoft.azure.documentdb.DocumentClient;
+import com.microsoft.azure.documentdb.DocumentCollection;
 import com.microsoft.azure.documentdb.FeedOptions;
 import com.microsoft.azure.documentdb.FeedResponse;
+import com.microsoft.azure.documentdb.RequestOptions;
 
 @SuppressWarnings("serial")
 public class Main extends JPanel {
@@ -86,8 +90,8 @@ public class Main extends JPanel {
 	final JFrame frame;
 
 	private FilteredTree tableTree;
-	private JXTreeTable dataTable;
 	private JXMultiSplitPane mainSplitPane;
+	private RTextScrollPane  sp;
 	private JPanel rowPanel;
 	private JLabel rowLabel;
 	private JEditorPane cellPane;
@@ -97,17 +101,14 @@ public class Main extends JPanel {
 	private JXButton nextButton;
 
 	JXButton searchButton;
-
+	RSyntaxTextArea textArea = new RSyntaxTextArea(20, 60);
+	
 	private SearchTextField searchField;
 	private JXTextField globalSearchField;
 
 	private JXLabel statusBar;
 
 	final GlassPane glassPane;
-
-	private final ButtonManager repositoryButtons;
-	private final ButtonManager graphButtons;
-	private final ButtonManager metadataButtons;
 
 	private DocumentClient documentClient = null;
 
@@ -128,10 +129,6 @@ public class Main extends JPanel {
 		this.frame = frame;
 
 		List<Image> images = new LinkedList<Image>();
-
-		this.repositoryButtons = new ButtonManager();
-		this.graphButtons = new ButtonManager();
-		this.metadataButtons = new ButtonManager();
 
 		statusBar = new JXLabel("Ready");
 		statusBar.setBorder(new EmptyBorder(5, 5, 10, 5));
@@ -188,7 +185,9 @@ public class Main extends JPanel {
 
 				if (row == 0) {
 					setIcon(createImageIcon("/images/clouds-32.png"));
-				} else {
+				} else if (isLeaf) {
+					setIcon(createImageIcon("/images/collection-icon-32.png"));
+				} else {	
 					setIcon(createImageIcon("/images/cosmosdb.png"));
 				}
 
@@ -207,8 +206,13 @@ public class Main extends JPanel {
 			}
 		});
 
-		dataTable = new JXTreeTable(new JsonModel());
-
+		textArea =new RSyntaxTextArea();
+		textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JSON);
+		textArea.setCodeFoldingEnabled(true);
+		textArea.setEditable(false);
+		textArea.setHighlightCurrentLine(false);
+		textArea.setFont(textArea.getFont().deriveFont((float) 14.0));
+	      
 		tableTree.getTree().addTreeSelectionListener(new TreeSelectionListener() {
 
 			@Override
@@ -217,11 +221,14 @@ public class Main extends JPanel {
 						.getLastSelectedPathComponent();
 
 				if (node == null) {
+					
+					return;
+					
 				}
 
 				final Object nodeInfo = node.getUserObject();
 
-				if (node.isLeaf() && nodeInfo instanceof Database) {
+				if (node.isLeaf() && nodeInfo instanceof DatabaseContainer) {
 
 					glassPane.activate("Please Wait");
 
@@ -229,29 +236,10 @@ public class Main extends JPanel {
 
 						public void run() {
 
-							rowLabel.setText("");
-							cellPane.setText("");
-							cellPane.repaint();
-
-							try {
-								fileNameLabel.setText(nodeInfo.toString());
-								fileNameLabel.setFont(fileNameLabel.getFont().deriveFont(Font.BOLD, 16));
-
-								enableGraphButtons(true);
-								enableMetadataButtons(true);
-								enableRepositoryButtons(false);
-
-								searchField.setEnabled(true);
-								searchButton.setEnabled(!globalSearchField.getText().isEmpty());
-
-							} catch (Exception e) {
-
-								TaskDialogs.showException(e);
-
-								glassPane.deactivate();
-
-							}
-
+							System.out.println("I am getting database objects");
+							
+							((DatabaseContainer)nodeInfo).getJSONObjects(documentClient);
+							
 							glassPane.deactivate();
 
 						}
@@ -263,9 +251,6 @@ public class Main extends JPanel {
 					resetDisplay();
 
 					enableNavigation(false);
-					enableGraphButtons(false);
-					enableRepositoryButtons(true);
-					enableMetadataButtons(node == tableTree.getTree().getModel().getRoot());
 					searchField.setEnabled(false);
 					searchButton.setEnabled(false);
 
@@ -352,12 +337,16 @@ public class Main extends JPanel {
 
 		navigationBar.add(nextButton);
 
-		JScrollPane sp = new JScrollPane(dataTable);
+		sp = new RTextScrollPane(textArea);
 
 		sp.setBorder(BorderFactory.createCompoundBorder(
 				BorderFactory.createMatteBorder(2, 2, 2, 2, ((Color) UIManager.get("Button.shadow")).darker()),
 				BorderFactory.createEmptyBorder(2, 2, 2, 2)));
-
+		
+		sp.setLineNumbersEnabled(false);
+		sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);	
+		sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+		
 		this.fileNameLabel = new JLabel("");
 
 		JComponent component = new ListViewBuilder().border(new EmptyBorder(5, 5, 5, 0)).labelView(fileNameLabel)
@@ -482,7 +471,36 @@ public class Main extends JPanel {
 				});
 
 		toolBar.addSeparator();
+		
+		addAction(toolBar, "New Database", "/images/index-icon-24.png", "/images/index-icon-24.png",
+				new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				NewDatabaseDialog dialog = new NewDatabaseDialog(frame, "New Database", new NewDatabaseAction() {
+					
+					@Override
+					public boolean select(String path) throws Exception {
+			
+						Database database = new Database();
 
+						database.setId(path);
+						
+						RequestOptions requestOptions = new RequestOptions();
+
+						documentClient.createDatabase(database, requestOptions);
+						
+						populateTableTree();
+						
+						return true;
+					}
+				});
+				
+				dialog.setVisible(true);
+						
+			};
+		
+		});
+	
 		addAction(toolBar, "Import", "/images/upload-icon-24.png", "/images/connect-icon-16.png", new ActionListener() {
 
 			@Override
@@ -491,7 +509,10 @@ public class Main extends JPanel {
 						new ImportDialog.ImportAction() {
 
 							@Override
-							public void OnComplete() {
+							public void OnComplete(Database database, DocumentCollection collectionDefinition) {
+							
+								populateTableTree();
+								
 							}
 
 							@Override
@@ -505,7 +526,7 @@ public class Main extends JPanel {
 			};
 
 		});
-
+	
 		toolBar.add(Box.createHorizontalGlue());
 
 		JPanel searchPanel = new JPanel(new BorderLayout());
@@ -571,9 +592,6 @@ public class Main extends JPanel {
 		toolBar.add(searchPanel);
 
 		enableNavigation(false);
-		enableRepositoryButtons(false);
-		enableGraphButtons(false);
-		enableMetadataButtons(false);
 
 		return toolBar;
 
@@ -602,10 +620,19 @@ public class Main extends JPanel {
 
 		FeedResponse<Database> databaseList = documentClient.queryDatabases("select * from root", queryOptions);
 
-		for (Database database : databaseList.getQueryIterable()) {
+		for (Database database : databaseList.getQueryIterable()) {	
+			DefaultMutableTreeNode node = new DefaultMutableTreeNode(new DatabaseContainer(database));
+			
+			root.add(node);
 
-			root.add(new DefaultMutableTreeNode(new DatabaseContainer(database)));
-
+			FeedResponse<DocumentCollection> documentCollections = documentClient.queryCollections(database.getSelfLink(), "SELECT * FROM root", queryOptions);
+			
+			for (DocumentCollection collection : documentCollections.getQueryIterable()) {
+				
+				node.add(new DefaultMutableTreeNode(new CollectionContainer(database, collection)));
+				
+			}
+			
 		}
 
 		tableTree.getTree().setRootVisible(true);
@@ -785,20 +812,6 @@ public class Main extends JPanel {
 	}
 
 	/**
-	 * Enable Repository Buttons
-	 * 
-	 * @param enable
-	 *            'true' enable repository buttons, 'false' disable repository
-	 *            buttons
-	 */
-
-	private void enableRepositoryButtons(boolean enable) {
-
-		repositoryButtons.setEnabled(enable);
-
-	}
-
-	/**
 	 * Enable/Disable the navigation buttons
 	 * 
 	 * @param enabled
@@ -823,32 +836,6 @@ public class Main extends JPanel {
 
 		headButton.setEnabled(top);
 		nextButton.setEnabled(next);
-
-	}
-
-	/**
-	 * Enable Graph Buttons
-	 * 
-	 * @param enable
-	 *            'true' enable graph buttons, 'false' disable graph buttons
-	 * 
-	 */
-	private void enableGraphButtons(boolean enable) {
-
-		graphButtons.setEnabled(enable);
-
-	}
-
-	/**
-	 * Enable Metadata Buttons
-	 * 
-	 * @param enable
-	 *            'true' enable metadata buttons, 'false' disable graph buttons
-	 * 
-	 */
-	private void enableMetadataButtons(boolean enable) {
-
-		metadataButtons.setEnabled(enable);
 
 	}
 

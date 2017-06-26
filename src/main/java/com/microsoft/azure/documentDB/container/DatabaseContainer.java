@@ -27,12 +27,13 @@ public class DatabaseContainer {
 		
 	}
 	
-	QueryResult getJSONObjects(DocumentClient documentClient) {
+	public QueryResult getJSONObjects(DocumentClient documentClient) {
 		FeedOptions queryOptions = new FeedOptions();
 		queryOptions.setPageSize(100);
 		queryOptions.setEnableCrossPartitionQuery(true);
+		
 		FeedResponse<Document> queryResults = documentClient.queryDocuments(database.getSelfLink(),
-				"SELECT * from " + database.getId(), queryOptions);
+				"SELECT * from c", queryOptions);
 		final StringBuilder builder = new StringBuilder();
 		
 		for (Document family : queryResults.getQueryIterable()) {

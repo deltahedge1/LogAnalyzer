@@ -28,14 +28,16 @@ import org.apache.commons.csv.CSVFormat;
 import org.jdesktop.swingx.JXButton;
 
 import com.microsoft.azure.documentDB.widget.StandardDialog;
+import com.microsoft.azure.documentdb.Database;
 import com.microsoft.azure.documentdb.DocumentClient;
+import com.microsoft.azure.documentdb.DocumentCollection;
 
 @SuppressWarnings("serial")
 public class ImportDialog extends StandardDialog {
 	
 	public interface ImportAction {
 		
-		void OnComplete();
+		void OnComplete(Database database, DocumentCollection collectionDefinition);
 		void OnFailure();
 		
 	}

@@ -39,9 +39,8 @@ public class ImportTaskDialog extends StandardDialog {
 
 	public ImportTaskDialog(final JFrame frame, final File file, final CSVFormat format, final boolean headerRow,
 			final DocumentClient documentClient, ImportAction importAction) {
-		super(frame, "Import File...", false);
+		super(frame, "Importing File '" + file.getName() + "'", false);
 
-		JLabel labelStatus = new JLabel("Importing: '" + file.getName() + "'");
 		JPanel contentPanel = new JPanel(new BorderLayout(5, 5));
 
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -53,7 +52,6 @@ public class ImportTaskDialog extends StandardDialog {
 		progressBar.setString("0%");
 		progressBar.setValue(0);
 
-		contentPanel.add(BorderLayout.NORTH, labelStatus);
 		contentPanel.add(BorderLayout.SOUTH, progressBar);
 
 		setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -96,6 +94,7 @@ public class ImportTaskDialog extends StandardDialog {
 					databaseDefinition.setId(file.getName());
 
 					Database databaseCache = documentClient.createDatabase(databaseDefinition, null).getResource();
+					
 					DocumentCollection collectionDefinition = new DocumentCollection();
                     collectionDefinition.setId("Records");
 
@@ -116,20 +115,21 @@ public class ImportTaskDialog extends StandardDialog {
 							} else {
 								jsonElement.append(header.get(iHeader), value);
 							
-								System.out.println(header.get(iHeader) + ":" + value);
-							
 							}
 
-							headerEnabled = false;
-							
 							iHeader += 1;
 
 						}
-
-						Document document = new Document(jsonElement);
 						
-						documentClient.createDocument(collectionCache.getSelfLink(), document, null, false);
-	
+						if (!headerEnabled) {
+						
+							Document document = new Document(jsonElement);
+						
+							documentClient.createDocument(collectionCache.getSelfLink(), document, null, false);
+						}
+						
+						headerEnabled = false;
+
 					}
 					
 				} catch (Exception e) {
