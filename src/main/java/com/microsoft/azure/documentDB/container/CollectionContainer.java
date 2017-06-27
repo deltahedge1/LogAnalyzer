@@ -1,7 +1,6 @@
 package com.microsoft.azure.documentDB.container;
 
 import java.util.Properties;
-import java.util.UUID;
 
 import com.microsoft.azure.documentdb.Database;
 import com.microsoft.azure.documentdb.Document;
@@ -48,18 +47,75 @@ public class CollectionContainer {
 
 	public QueryResult getJSONObjects(DocumentClient documentClient) {
 		FeedOptions queryOptions = new FeedOptions();
-		queryOptions.setMaxBufferedItemCount(100);
 		queryOptions.setEnableCrossPartitionQuery(true);
-
-		final FeedResponse<Document> queryResults = documentClient.queryDocuments(collection.getSelfLink(), "SELECT TOP 100 * from c	" ,
+		queryOptions.setPageSize(10);
+		
+		final FeedResponse<Document> queryResults = documentClient.queryDocuments(collection.getSelfLink(), "SELECT * from c	" ,
 				queryOptions);
 		final StringBuilder builder = new StringBuilder();
 
+		int iCount = 0;
+		
 		for (Document document : queryResults.getQueryIterable()) {
+			
+			if (iCount >= 10) {
+				
+				break;
+				
+			}
 			
 			if (builder.length() > 0) {
 				builder.append("\n");
 			}
+		
+			builder.append(document.toJson(SerializationFormattingPolicy.Indented));
+
+			iCount++;
+			
+		}
+
+		return new QueryResult() {
+
+			@Override
+			public String getContinuation() {
+				return queryResults.getResponseContinuation();
+			}
+
+			@Override
+			public String getObjects() {
+				return builder.toString();
+			}
+
+		};
+
+	}
+	
+	public QueryResult getJSONObjects(DocumentClient documentClient, String continuationToken) {
+		FeedOptions queryOptions = new FeedOptions();
+		queryOptions.setEnableCrossPartitionQuery(true);
+		queryOptions.setRequestContinuation(continuationToken);
+		queryOptions.setPageSize(10);
+	
+		final FeedResponse<Document> queryResults = documentClient.queryDocuments(collection.getSelfLink(), "SELECT TOP 100 * from c	" ,
+				queryOptions);
+		final StringBuilder builder = new StringBuilder();
+
+		int iCount = 0;
+		
+		for (Document document : queryResults.getQueryIterable()) {
+		
+			if (iCount >= 10) {
+				
+				break;
+				
+			}
+		
+			if (builder.length() > 0) {
+				builder.append("\n");
+			}
+			
+			iCount++;
+			
 			builder.append(document.toJson(SerializationFormattingPolicy.Indented));
 
 		}

@@ -143,6 +143,8 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 				final GlassPane glassPane = new GlassPane(ConnectDialog.this);
 
 				ConnectDialog.this.setEnabled(false);
+				loginButton.setEnabled(false);
+				cancelButton.setEnabled(false);
 
 				glassPane.activate("Connecting...");
 
@@ -167,6 +169,9 @@ public class ConnectDialog extends StandardDialog implements Closeable {
 							TaskDialogs.showException(e);
 
 						}
+						
+						loginButton.setEnabled(true);
+						cancelButton.setEnabled(true);
 
 						ConnectDialog.this.setEnabled(true);
 						glassPane.deactivate();

@@ -109,6 +109,8 @@ public class Main extends JPanel {
 
 	private JXLabel statusBar;
 
+	private String continuationToken = null;
+	
 	final GlassPane glassPane;
 
 	private DocumentClient documentClient = null;
@@ -226,8 +228,7 @@ public class Main extends JPanel {
 
 							Properties properties = ((CollectionContainer)nodeInfo).getProperties();
 							StringBuilder sb = new StringBuilder("<html><table>");
-							
-							
+								
 							for (Entry<Object,Object> entry : properties.entrySet()) {
 								sb.append("<tr><td>" + entry.getKey() + "</td><td>" +entry.getValue() + "</td></tr>");	
 							}
@@ -235,10 +236,17 @@ public class Main extends JPanel {
 							sb.append("</table></html>");
 							cellPane.setText(sb.toString());
 						
-
 							QueryResult result = ((CollectionContainer) nodeInfo).getJSONObjects(documentClient);
 
+							nextButton.setEnabled(true);
+							headButton.setEnabled(true);
+							
 							textArea.setText(result.getObjects());
+							
+							continuationToken = result.getContinuation();
+							
+							System.out.println("Continuation Token: " + continuationToken);
+							
 							sp.setLineNumbersEnabled(true);
 							textArea.setCaretPosition(0);
 							glassPane.deactivate();
@@ -307,8 +315,22 @@ public class Main extends JPanel {
 
 		headButton.setBorderPainted(false);
 		nextButton.setBorderPainted(false);
+		
 		nextButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				final DefaultMutableTreeNode node = (DefaultMutableTreeNode) databaseTree.getTree()
+						.getLastSelectedPathComponent();
+
+				QueryResult result = ((CollectionContainer) node.getUserObject()).getJSONObjects(documentClient, continuationToken);
+
+				textArea.setText(result.getObjects());
+				sp.setLineNumbersEnabled(true);
+				textArea.setCaretPosition(0);
+				glassPane.deactivate();
+			
+				continuationToken = result.getContinuation();
+				
+				System.out.println("Continuation Token: " + continuationToken);
 
 			}
 
@@ -454,7 +476,7 @@ public class Main extends JPanel {
 
 					@Override
 					public void actionPerformed(ActionEvent event) {
-						ConnectDialog dialog = new ConnectDialog(frame, "Connect to Azure Table Storage",
+						ConnectDialog dialog = new ConnectDialog(frame, "Connect to Azure Document Storage",
 								new ConnectAction() {
 
 									@Override
@@ -496,7 +518,6 @@ public class Main extends JPanel {
 
 									@Override
 									public boolean select(String path) throws Exception {
-
 										Database database = new Database();
 
 										database.setId(path);
@@ -634,6 +655,9 @@ public class Main extends JPanel {
 		cellPane.repaint();
 
 		fileNameLabel.setText("");
+		
+		nextButton.setEnabled(false);
+		headButton.setEnabled(false);
 
 	}
 
