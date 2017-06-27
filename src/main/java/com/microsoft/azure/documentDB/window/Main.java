@@ -330,14 +330,23 @@ public class Main extends JPanel {
 			
 				continuationToken = result.getContinuation();
 				
-				System.out.println("Continuation Token: " + continuationToken);
-
 			}
 
 		});
 
 		headButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				final DefaultMutableTreeNode node = (DefaultMutableTreeNode) databaseTree.getTree()
+						.getLastSelectedPathComponent();
+				final QueryResult result = ((CollectionContainer) node.getUserObject()).getJSONObjects(documentClient);
+
+				textArea.setText(result.getObjects());
+				sp.setLineNumbersEnabled(true);
+				textArea.setCaretPosition(0);
+				glassPane.deactivate();
+			
+				continuationToken = result.getContinuation();
+				
 			}
 
 		});
